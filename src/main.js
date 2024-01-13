@@ -1,12 +1,35 @@
-import './style.css'
+import '../style.css'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import * as dat from 'lil-gui'
+import {Terrain} from "./Terrain.js";
 
-/**
- * Debug
- */
-// const gui = new dat.GUI()
+const gui = new dat.GUI()
+
+const guiProps = {
+	plane: {
+		width: 200,
+		height: 200,
+		widthSegments: 200,
+		heightSegments: 200,
+		wireframe: true,
+	},
+	fbm: {
+		octaves: 8,
+		amplitude: 15,
+		lacunarity: 2,
+		gain: 0.5,
+		scale: 100,
+		seed: "seed"
+	}
+}
+
+for (const [key, obj] of Object.entries(guiProps)) {
+	const folder = gui.addFolder(key.toUpperCase());
+	for (const key of Object.keys(obj)) {
+		folder.add(obj, key)
+	}
+}
 
 /**
  * Scene
@@ -16,12 +39,20 @@ const scene = new THREE.Scene()
 /**
  * BOX
  */
-const material = new THREE.MeshNormalMaterial()
-const geometry = new THREE.BoxGeometry(1, 1, 1)
+const terrain = new Terrain(new THREE.Mesh())
+scene.add(terrain.mesh)
+setupMesh(terrain);
+gui.onFinishChange((props) => {
+	setupMesh(terrain);
+})
 
-const mesh = new THREE.Mesh(geometry, material)
-scene.add(mesh)
-
+function setupMesh(terrain) {
+	const {plane, fbm} = guiProps;
+	terrain.material = new THREE.MeshNormalMaterial({wireframe: plane.wireframe});
+	terrain.geometry = new THREE.PlaneGeometry(plane.width, plane.height, plane.widthSegments, plane.heightSegments);
+	terrain.geometry.rotateX(-Math.PI /2);
+	terrain.applyFBM(fbm.octaves, fbm.amplitude, fbm.lacunarity, fbm.gain, fbm.scale, fbm.seed);
+}
 /**
  * render sizes
  */
@@ -34,7 +65,7 @@ const sizes = {
  */
 const fov = 60
 const camera = new THREE.PerspectiveCamera(fov, sizes.width / sizes.height, 0.1)
-camera.position.set(4, 4, 4)
+camera.position.set(10, 10, 10)
 camera.lookAt(new THREE.Vector3(0, 2.5, 0))
 
 /**
@@ -60,31 +91,15 @@ const controls = new OrbitControls(camera, renderer.domElement)
 controls.enableDamping = true
 
 /**
- * Three js Clock
- */
-// const clock = new THREE.Clock()
-
-/**
  * frame loop
  */
-function tic() {
-	/**
-	 * tempo trascorso dal frame precedente
-	 */
-	// const deltaTime = clock.getDelta()
-	/**
-	 * tempo totale trascorso dall'inizio
-	 */
-	// const time = clock.getElapsedTime()
-
+function tick() {
 	controls.update()
-
 	renderer.render(scene, camera)
-
-	requestAnimationFrame(tic)
+	requestAnimationFrame(tick)
 }
 
-requestAnimationFrame(tic)
+requestAnimationFrame(tick)
 
 window.addEventListener('resize', handleResize)
 
