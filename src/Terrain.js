@@ -124,9 +124,9 @@ export class Terrain {
             const deposit = sediment * depositionRate * deltaY
             const erosion = erosionRate * deltaY;
             sediment += erosion - deposit;
-            const posJ = position.getY(j);
+            const posJ = position.getY(j) -(deposit-erosion);
 
-            position.setY(j, posJ-(deposit-erosion));
+            position.setY(j, posJ);
             j = min;
         }
     }
