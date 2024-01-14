@@ -1,5 +1,8 @@
 import * as THREE from "three";
 import {Noise} from "./Noise.js";
+import Alea from "alea";
+import {min} from "three/nodes";
+import {Vector3} from "three";
 export class Terrain {
 
     /**
@@ -65,5 +68,86 @@ export class Terrain {
 
         this.geometry.computeVertexNormals();
         position.needsUpdate = true;
+    }
+
+    /**
+     * Applies erosion algorithm to the 3D geometry.
+     *
+     * @param {number} drops - The number of vertices to be randomly selected for erosion.
+     * @param {string} seed - The seed value used for random number generation.
+     * @param {number} iterations - The number of erosion iterations.
+     * @param {number} erosionRate - The rate at which the terrain is eroded.
+     * @param {number} depositionRate - The rate at which sediment is deposited.
+     * @returns {void}
+     */
+    applyErosion(drops=30, seed="alea", iterations =30, erosionRate = 1, depositionRate = 1) {
+        const position = this.geometry.getAttribute("position");
+        const alea = new Alea(seed);
+        const maxVertex = position.count - 1;
+        let vertices = [];
+        for (let i = 0; i < drops; i++) {
+            vertices.push(Math.floor(alea()*maxVertex))
+        }
+
+        for (let j = 0; j < vertices.length; j++) {
+            this.#applyDrop(j, iterations, erosionRate, depositionRate);
+        }
+        this.geometry.computeVertexNormals();
+        position.needsUpdate = true;
+    }
+
+    #applyDrop(index, iterations =30, erosionRate = 1, depositionRate = 1) {
+        const position = this.geometry.getAttribute("position");
+        let j = index;
+        let sediment = 0;
+        for (let i = 0; i < iterations; i++) {
+            const neigh = this.#getNeighbours(j);
+            let min = j;
+            for (let n of neigh) {
+                const yCurr = position.getY(n)
+                const yMin = position.getY(min)
+                if (yCurr < yMin) {
+                    min = n;
+                }
+            }
+            const start = new THREE.Vector3();
+            const end = new THREE.Vector3();
+            start.fromBufferAttribute(position, i);
+            end.fromBufferAttribute(position, min);
+            const deltaVec = new THREE.Vector3(start.x-end.x, start.y-end.y, start.z-end.z).normalize();
+            const deltaY = deltaVec.y;
+
+            if (deltaY <=0) {
+                return;
+            }
+
+            const deposit = sediment * depositionRate * deltaY
+            const erosion = erosionRate * deltaY;
+            sediment += erosion - deposit;
+            const posJ = position.getY(j);
+
+            position.setY(j, posJ-(deposit-erosion));
+            j = min;
+        }
+    }
+
+    /**
+     * Retrieves the neighboring vertices of the given vertex.
+     *
+     * @param {number} vertex The index of the vertex for which neighbors are to be retrieved.
+     * @return {Array} An array containing the indices of the neighboring vertices.
+     */
+    #getNeighbours(vertex) {
+        const { widthSegments } = this.geometry.parameters;
+        const position = this.geometry.getAttribute("position");
+
+        const max = position.count;
+        const north = vertex - (widthSegments +1);
+        const south = vertex + (widthSegments +1);
+        const west = vertex - 1;
+        const east = vertex + 1;
+        let neighbours = [north, south, west, east];
+        neighbours = neighbours.filter(vx => vx >=0 && vx<max)
+        return neighbours;
     }
 }

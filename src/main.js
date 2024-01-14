@@ -8,10 +8,10 @@ const gui = new dat.GUI()
 
 const guiProps = {
 	plane: {
-		width: 200,
-		height: 200,
-		widthSegments: 200,
-		heightSegments: 200,
+		width: 100,
+		height: 100,
+		widthSegments: 100,
+		heightSegments: 100,
 		wireframe: true,
 	},
 	fbm: {
@@ -21,6 +21,13 @@ const guiProps = {
 		gain: 0.5,
 		scale: 100,
 		seed: "seed"
+	},
+	erosion: {
+		drops: 1,
+		seed: "seed",
+		maxIterations: 30,
+		erosionRate: 1,
+		depositionRate: 1
 	}
 }
 
@@ -47,11 +54,12 @@ gui.onFinishChange((props) => {
 })
 
 function setupMesh(terrain) {
-	const {plane, fbm} = guiProps;
+	const {plane, fbm, erosion} = guiProps;
 	terrain.material = new THREE.MeshNormalMaterial({wireframe: plane.wireframe});
 	terrain.geometry = new THREE.PlaneGeometry(plane.width, plane.height, plane.widthSegments, plane.heightSegments);
 	terrain.geometry.rotateX(-Math.PI /2);
 	terrain.applyFBM(fbm.octaves, fbm.amplitude, fbm.lacunarity, fbm.gain, fbm.scale, fbm.seed);
+	terrain.applyErosion(erosion.drops, erosion.seed, erosion.maxIterations, erosion.erosionRate, erosion.depositionRate)
 }
 /**
  * render sizes
