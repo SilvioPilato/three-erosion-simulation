@@ -8,7 +8,7 @@ export class Terrain {
     /**
      * Creates a new instance of the constructor.
      *
-     * @param {THREE.PlaneMesh} mesh - The mesh object.
+     * @param {Mesh} mesh - The mesh object.
      */
     constructor(mesh) {
         this.mesh = mesh;
@@ -50,22 +50,24 @@ export class Terrain {
         this.mesh.material = _material;
     }
 
-    applyFBM(octaves = 1, amplitude = 1, lacunarity = 2, gain = 0.5, scale= 1, seed="alea") {
+    applyFBM(octaves = 1, amplitude = 1, lacunarity = 2, gain = 0.5, scale= 1, maxHeight=10, seed="alea") {
         const noise = new Noise(octaves, amplitude, lacunarity, gain, scale, seed);
         const position = this.geometry.getAttribute("position");
         let freq = 1;
         let totalAmplitude = 0;
+        let max = -100000;
         for (let i = 0; i < position.count; i++) {
             const vertex = new THREE.Vector3();
             vertex.fromBufferAttribute(position, i);
-            vertex.y = noise.getValue(vertex.x, vertex.z);
+            vertex.y = noise.getValue(vertex.x, vertex.z)*maxHeight;
+            max = Math.max(vertex.y, max);
             freq *= lacunarity;
             amplitude *= gain;
             totalAmplitude += amplitude;
             position.setXYZ(i, vertex.x, vertex.y, vertex.z);
         }
 
-
+        console.log(max);
         this.geometry.computeVertexNormals();
         position.needsUpdate = true;
     }
@@ -96,7 +98,7 @@ export class Terrain {
         position.needsUpdate = true;
     }
 
-    #applyDrop(index, iterations =30, erosionRate = 1, depositionRate = 1) {
+    #applyDrop(index, iterations =30, erosionRate = 1, depositionRate = 1, scale = 1) {
         const position = this.geometry.getAttribute("position");
         let j = index;
         let sediment = 0;
@@ -124,8 +126,7 @@ export class Terrain {
             const deposit = sediment * depositionRate * deltaY
             const erosion = erosionRate * deltaY;
             sediment += erosion - deposit;
-            const posJ = position.getY(j) -(deposit-erosion);
-
+            const posJ = position.getY(j)-(deposit-erosion);
             position.setY(j, posJ);
             j = min;
         }

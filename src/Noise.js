@@ -97,9 +97,10 @@ export class Noise {
 
                     ) *
                 amplitude;
+            totalAmplitude+=amplitude;
             amplitude *= this.gain;
             frequency *= this.lacunarity;
         }
-        return totalNoise;
+        return totalNoise/totalAmplitude;
     }
 }

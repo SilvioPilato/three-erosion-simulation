@@ -20,6 +20,7 @@ const guiProps = {
 		lacunarity: 2,
 		gain: 0.5,
 		scale: 100,
+		maxHeight: 10,
 		seed: "seed"
 	},
 	erosion: {
@@ -58,7 +59,7 @@ function setupMesh(terrain) {
 	terrain.material = new THREE.MeshNormalMaterial({wireframe: plane.wireframe});
 	terrain.geometry = new THREE.PlaneGeometry(plane.width, plane.height, plane.widthSegments, plane.heightSegments);
 	terrain.geometry.rotateX(-Math.PI /2);
-	terrain.applyFBM(fbm.octaves, fbm.amplitude, fbm.lacunarity, fbm.gain, fbm.scale, fbm.seed);
+	terrain.applyFBM(fbm.octaves, fbm.amplitude, fbm.lacunarity, fbm.gain, fbm.scale, fbm.maxHeight, fbm.seed);
 	terrain.applyErosion(erosion.drops, erosion.seed, erosion.maxIterations, erosion.erosionRate, erosion.depositionRate)
 }
 /**
