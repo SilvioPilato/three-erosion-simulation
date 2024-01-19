@@ -8,7 +8,7 @@ export class Terrain {
     /**
      * Creates a new instance of the constructor.
      *
-     * @param {Mesh} mesh - The mesh object.
+     * @param {THREE.Mesh} mesh - The mesh object.
      */
     constructor(mesh) {
         this.mesh = mesh;
@@ -50,7 +50,15 @@ export class Terrain {
         this.mesh.material = _material;
     }
 
-    applyFBM(octaves = 1, amplitude = 1, lacunarity = 2, gain = 0.5, scale= 1, maxHeight=10, seed="alea") {
+    applyFBM(
+        octaves = 1,
+        amplitude = 1,
+        lacunarity = 2,
+        gain = 0.5,
+        scale= 1,
+        maxHeight=10,
+        seed="alea"
+    ) {
         const noise = new Noise(octaves, amplitude, lacunarity, gain, scale, seed);
         const position = this.geometry.getAttribute("position");
         let freq = 1;
@@ -67,22 +75,19 @@ export class Terrain {
             position.setXYZ(i, vertex.x, vertex.y, vertex.z);
         }
 
-        console.log(max);
         this.geometry.computeVertexNormals();
         position.needsUpdate = true;
     }
 
     /**
-     * Applies erosion algorithm to the 3D geometry.
      *
-     * @param {number} drops - The number of vertices to be randomly selected for erosion.
-     * @param {string} seed - The seed value used for random number generation.
-     * @param {number} iterations - The number of erosion iterations.
-     * @param {number} erosionRate - The rate at which the terrain is eroded.
-     * @param {number} depositionRate - The rate at which sediment is deposited.
-     * @returns {void}
+     * @param drops
+     * @param seed
+     * @param capacity
+     * @param erosionRate
+     * @param depositionRate
      */
-    applyErosion(drops=30, seed="alea", iterations =30, erosionRate = 1, depositionRate = 1) {
+    applyErosion(drops=30, seed="alea", capacity =30, erosionRate = 1, depositionRate = 1) {
         const position = this.geometry.getAttribute("position");
         const alea = new Alea(seed);
         const maxVertex = position.count - 1;
@@ -92,17 +97,20 @@ export class Terrain {
         }
 
         for (let j = 0; j < vertices.length; j++) {
-            this.#applyDrop(j, iterations, erosionRate, depositionRate);
+            this.#applyDrop(j, capacity, erosionRate, depositionRate);
         }
         this.geometry.computeVertexNormals();
         position.needsUpdate = true;
     }
 
-    #applyDrop(index, iterations =30, erosionRate = 1, depositionRate = 1, scale = 1) {
+    #applyDrop(index, capacity =30, erosionRate = 1, depositionRate = 0.1, scale = 1, evaporationRate =0.1) {
         const position = this.geometry.getAttribute("position");
         let j = index;
         let sediment = 0;
-        for (let i = 0; i < iterations; i++) {
+        const start = new THREE.Vector3();
+        const end = new THREE.Vector3();
+        let deltaVec = new THREE.Vector3();
+        while (capacity >= 0) {
             const neigh = this.#getNeighbours(j);
             let min = j;
             for (let n of neigh) {
@@ -112,21 +120,34 @@ export class Terrain {
                     min = n;
                 }
             }
-            const start = new THREE.Vector3();
-            const end = new THREE.Vector3();
-            start.fromBufferAttribute(position, i);
+
+            start.fromBufferAttribute(position, j);
             end.fromBufferAttribute(position, min);
-            const deltaVec = new THREE.Vector3(start.x-end.x, start.y-end.y, start.z-end.z).normalize();
+            deltaVec.x = start.x-end.x;
+            deltaVec.y = start.y-end.y;
+            deltaVec.z = start.z-end.z;
+            deltaVec = deltaVec.normalize();
             const deltaY = deltaVec.y;
 
-            if (deltaY <=0) {
+            if (deltaY <= 0) {
+                position.setY(j, position.getY(j)+sediment);
                 return;
             }
+            let deposit = sediment * depositionRate * deltaY;
+            let erosion = erosionRate * (1-deltaY);
 
-            const deposit = sediment * depositionRate * deltaY
-            const erosion = erosionRate * deltaY;
-            sediment += erosion - deposit;
-            const posJ = position.getY(j)-(deposit-erosion);
+            capacity*=evaporationRate * deltaY;
+            erosion = Math.min(erosion, deltaY);
+            sediment += Math.min(deltaY, erosion) - deposit;
+
+            if(sediment > capacity) {
+                deposit += sediment - capacity;
+                sediment = capacity;
+            } else {
+                capacity-=sediment;
+            }
+
+            const posJ = position.getY(j)-erosion + deposit;
             position.setY(j, posJ);
             j = min;
         }

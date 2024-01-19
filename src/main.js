@@ -26,9 +26,10 @@ const guiProps = {
 	erosion: {
 		drops: 1,
 		seed: "seed",
-		maxIterations: 30,
+		capacity: 30,
 		erosionRate: 1,
-		depositionRate: 1
+		depositionRate: 1,
+		evaporationRate: 0.1
 	}
 }
 
@@ -60,7 +61,7 @@ function setupMesh(terrain) {
 	terrain.geometry = new THREE.PlaneGeometry(plane.width, plane.height, plane.widthSegments, plane.heightSegments);
 	terrain.geometry.rotateX(-Math.PI /2);
 	terrain.applyFBM(fbm.octaves, fbm.amplitude, fbm.lacunarity, fbm.gain, fbm.scale, fbm.maxHeight, fbm.seed);
-	terrain.applyErosion(erosion.drops, erosion.seed, erosion.maxIterations, erosion.erosionRate, erosion.depositionRate)
+	terrain.applyErosion(erosion.drops, erosion.seed, erosion.capacity, erosion.erosionRate, erosion.depositionRate)
 }
 /**
  * render sizes
