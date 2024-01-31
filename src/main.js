@@ -21,15 +21,16 @@ const guiProps = {
 		gain: 0.5,
 		scale: 100,
 		maxHeight: 10,
-		seed: "seed"
+		seed: "asd"
 	},
 	erosion: {
-		drops: 1,
-		seed: "seed",
+		drops: 5,
+		seed: "e",
 		capacity: 30,
 		erosionRate: 1,
 		depositionRate: 1,
-		evaporationRate: 0.1
+		evaporationRate: 0.1,
+		debug: false
 	}
 }
 
@@ -48,10 +49,9 @@ const scene = new THREE.Scene()
 /**
  * BOX
  */
-const terrain = new Terrain(new THREE.Mesh())
-scene.add(terrain.mesh)
+const terrain = new Terrain(new THREE.Mesh());
 setupMesh(terrain);
-gui.onFinishChange((props) => {
+gui.onFinishChange(() => {
 	setupMesh(terrain);
 })
 
@@ -61,7 +61,12 @@ function setupMesh(terrain) {
 	terrain.geometry = new THREE.PlaneGeometry(plane.width, plane.height, plane.widthSegments, plane.heightSegments);
 	terrain.geometry.rotateX(-Math.PI /2);
 	terrain.applyFBM(fbm.octaves, fbm.amplitude, fbm.lacunarity, fbm.gain, fbm.scale, fbm.maxHeight, fbm.seed);
-	terrain.applyErosion(erosion.drops, erosion.seed, erosion.capacity, erosion.erosionRate, erosion.depositionRate)
+	terrain.applyErosion(erosion.drops, erosion.seed, erosion.capacity, erosion.erosionRate, erosion.depositionRate, erosion.evaporationRate, erosion.debug);
+ 	scene.clear();
+	scene.add(terrain.mesh)
+	for (let helper of terrain.debugHelpers) {
+		scene.add(helper);
+	}
 }
 /**
  * render sizes
@@ -77,12 +82,6 @@ const fov = 60
 const camera = new THREE.PerspectiveCamera(fov, sizes.width / sizes.height, 0.1)
 camera.position.set(10, 10, 10)
 camera.lookAt(new THREE.Vector3(0, 2.5, 0))
-
-/**
- * Show the axes of coordinates system
- */
-const axesHelper = new THREE.AxesHelper(3)
-scene.add(axesHelper)
 
 /**
  * renderer
